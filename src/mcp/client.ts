@@ -23,8 +23,8 @@ class MCPManager {
       if (serverConfig.enabled !== false) {
         try {
           await this.connectServer(name, serverConfig);
-        } catch (error) {
-          console.error(`Failed to connect to MCP server ${name}:`, error);
+        } catch {
+          // Silent - MCP status shown in TUI
         }
       }
     }
@@ -46,7 +46,8 @@ class MCPManager {
     const transport = new StdioClientTransport({
       command: config.command,
       args: config.args,
-      env: { ...process.env, ...config.env } as Record<string, string>
+      env: { ...process.env, ...config.env } as Record<string, string>,
+      stderr: "ignore" // Suppress MCP server stderr output
     });
 
     try {
@@ -61,9 +62,9 @@ class MCPManager {
       }));
 
       this.clients.set(name, { name, client, transport, tools });
-      console.log(`Connected to MCP server: ${name} (${tools.length} tools)`);
+      // Silent - status shown in TUI header instead
     } catch (error) {
-      console.error(`Error connecting to ${name}:`, error);
+      // Silent - errors handled by caller
       throw error;
     }
   }
