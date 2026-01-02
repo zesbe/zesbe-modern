@@ -871,7 +871,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
 
   return (
     <Box flexDirection="column" height="100%">
-      <Header provider={config.provider} model={config.model} yolo={config.yolo} />
+      <Header provider={config.provider} model={config.model} yolo={config.yolo} mcpServers={mcpManager.getConnectedServers()} />
 
       <Box flexDirection="column" flexGrow={1} paddingX={1} overflowY="hidden">
         {messages.map((msg, i) => (
