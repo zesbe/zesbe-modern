@@ -139,14 +139,6 @@ Type **/help** for commands or just start chatting! 💻`,
       }).catch((err) => {
         // MCP failed but don't block the app
         console.error("MCP initialization failed:", err);
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: "system",
-            content: `⚠️ MCP servers unavailable (continuing with built-in tools)`,
-            timestamp: new Date(),
-          }
-        ]);
       });
     });
   }, []);

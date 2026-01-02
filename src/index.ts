@@ -27,18 +27,24 @@ async function main() {
       console: {
         type: "boolean",
         description: "Use stable console mode instead of TUI",
+        default: true // INK DISABLED - console mode by default
+      },
+      tui: {
+        type: "boolean",
+        description: "Force Ink TUI mode (experimental, may have glitches)",
         default: false
       }
     }, async (argv) => {
       console.log(banner);
 
-      // Use Ink TUI by default (with auto-fallback), or force console mode
-      if (argv.console) {
-        console.log(chalk.cyan('🖥️  Using console mode\n'));
-        await startConsole();
-      } else {
-        // startTUI will auto-fallback to console if TUI is not supported
+      // INK TUI DISABLED BY DEFAULT - use --tui flag to enable
+      if (argv.tui && !argv.console) {
+        console.log(chalk.yellow('⚠️  Ink TUI mode (experimental - may have glitches)\n'));
         await startTUI();
+      } else {
+        // Default: stable console mode
+        console.log(chalk.cyan('🖥️  Using stable console mode\n'));
+        await startConsole();
       }
     })
     .command("server", "Start the backend server", {
