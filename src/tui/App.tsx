@@ -1,8 +1,25 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
-import { Header, Message, Input, Spinner, ToolActivity, StreamingActivity } from "./components";
+import {
+  Header,
+  Message,
+  Input,
+  Spinner,
+  ToolActivity,
+  StreamingActivity,
+  ProviderMenu,
+  ModelMenu,
+  YoloMenu,
+  MCPMenu,
+  ThinkingMenu,
+  ConfigView,
+  SkillsMenu,
+} from "./components";
 import { getProvider, type Message as AIMessage, type StreamChunk } from "../ai";
 import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS, CODING_SYSTEM_PROMPT, type Config } from "../config";
+
+// Types for interactive menus
+type ActiveMenu = "none" | "provider" | "model" | "yolo" | "mcp" | "thinking" | "config" | "skills";
 import { TOOL_DEFINITIONS, executeTools } from "../tools";
 import { filterThinking, extractThinking, renderMarkdown } from "../utils";
 import {
@@ -58,6 +75,9 @@ export function App() {
   // MCP state
   const [mcpInitialized, setMcpInitialized] = useState(false);
   const [mcpTools, setMcpTools] = useState<any[]>([]);
+
+  // Interactive menu state
+  const [activeMenu, setActiveMenu] = useState<ActiveMenu>("none");
 
   // Load config and create session on mount
   useEffect(() => {
@@ -205,26 +225,15 @@ Tip: Ask me to search for documentation or help with coding.`,
           return true;
 
         case "provider":
-          if (args[0] === "list") {
-            const providers = listProviders()
-              .map((p) => `• ${p} - ${DEFAULT_PROVIDERS[p].model}`)
-              .join("\n");
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "system",
-                content: `**Available Providers:**\n\n${providers}`,
-                timestamp: new Date(),
-              },
-            ]);
-          } else if (args[0] === "set" && args[1]) {
+          if (args[0] === "set" && args[1]) {
+            // Direct set with argument
             const newProvider = args[1].toLowerCase();
             if (!DEFAULT_PROVIDERS[newProvider]) {
               setMessages((prev) => [
                 ...prev,
                 {
                   role: "system",
-                  content: `Unknown provider: ${newProvider}\nUse /provider list to see available providers.`,
+                  content: `Unknown provider: ${newProvider}\nUse /provider to see available providers.`,
                   timestamp: new Date(),
                 },
               ]);
@@ -241,20 +250,14 @@ Tip: Ask me to search for documentation or help with coding.`,
                 ...prev,
                 {
                   role: "system",
-                  content: `Switched to **${DEFAULT_PROVIDERS[newProvider].name}** (${DEFAULT_PROVIDERS[newProvider].model})`,
+                  content: `✅ Switched to **${DEFAULT_PROVIDERS[newProvider].name}** (${DEFAULT_PROVIDERS[newProvider].model})`,
                   timestamp: new Date(),
                 },
               ]);
             }
           } else {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "system",
-                content: `Current provider: **${config.provider}**\n\nUse /provider list or /provider set <name>`,
-                timestamp: new Date(),
-              },
-            ]);
+            // Show interactive menu
+            setActiveMenu("provider");
           }
           return true;
 
@@ -268,47 +271,24 @@ Tip: Ask me to search for documentation or help with coding.`,
               ...prev,
               {
                 role: "system",
-                content: `Model changed to: **${newModel}**`,
+                content: `✅ Model changed to: **${newModel}**`,
                 timestamp: new Date(),
               },
             ]);
           } else {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "system",
-                content: `Current model: **${config.model}**\n\nUse /model set <name> to change`,
-                timestamp: new Date(),
-              },
-            ]);
+            // Show interactive menu
+            setActiveMenu("model");
           }
           return true;
 
         case "yolo":
-          const newYolo = !config.yolo;
-          const newConfig = { ...config, yolo: newYolo };
-          await saveConfig(newConfig);
-          setConfig(newConfig);
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "system",
-              content: `YOLO mode: **${newYolo ? "ENABLED" : "DISABLED"}**`,
-              timestamp: new Date(),
-            },
-          ]);
+          // Show interactive menu instead of direct toggle
+          setActiveMenu("yolo");
           return true;
 
         case "thinking":
-          setShowThinking(!showThinking);
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "system",
-              content: `Thinking display: **${!showThinking ? "SHOWN" : "HIDDEN"}**`,
-              timestamp: new Date(),
-            },
-          ]);
+          // Show interactive menu
+          setActiveMenu("thinking");
           return true;
 
         case "history":
@@ -351,102 +331,16 @@ Tip: Ask me to search for documentation or help with coding.`,
           return true;
 
         case "config":
-          setMessages((prev) => [
-            ...prev,
-            {
-              role: "system",
-              content: `**Current Config:**
-
-• Provider: ${config.provider}
-• Model: ${config.model}
-• YOLO: ${config.yolo ? "enabled" : "disabled"}
-• Theme: ${config.theme}
-• Max Tokens: ${config.maxTokens}
-• Temperature: ${config.temperature}`,
-              timestamp: new Date(),
-            },
-          ]);
+          // Show interactive config view
+          setActiveMenu("config");
           return true;
 
         case "mcp":
-          // MCP server management
+          // MCP server management - show interactive menu
           const subCmd = args[0]?.toLowerCase();
 
-          if (!subCmd || subCmd === "list" || subCmd === "status") {
-            // List all MCP servers with their status
-            const servers = await listMCPServers();
-            const connectedServers = mcpManager.getConnectedServers();
-
-            if (servers.length === 0) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `**🔌 MCP Servers:**
-
-No MCP servers configured.
-
-Use /mcp add <name> to add a server.`,
-                  timestamp: new Date(),
-                },
-              ]);
-            } else {
-              const serverList = servers.map((s) => {
-                const isConnected = connectedServers.includes(s.name);
-                const status = s.config.enabled !== false
-                  ? (isConnected ? "🟢 Connected" : "🟡 Enabled")
-                  : "🔴 Disabled";
-                const toolCount = mcpManager.getServerInfo(s.name)?.tools || 0;
-                return `• **${s.name}** - ${status}${toolCount ? ` (${toolCount} tools)` : ""}`;
-              }).join("\n");
-
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `**🔌 MCP Servers:**
-
-${serverList}
-
-**Commands:**
-• /mcp toggle <name> - Enable/disable server
-• /mcp reconnect - Reconnect all servers
-• /mcp tools - List all MCP tools
-• /mcp add <name> - Add new server
-• /mcp remove <name> - Remove server`,
-                  timestamp: new Date(),
-                },
-              ]);
-            }
-            return true;
-          } else if (subCmd === "toggle" && args[1]) {
-            const serverName = args[1];
-            const newStatus = await toggleMCPServer(serverName);
-            if (newStatus === null) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `MCP server not found: ${serverName}`,
-                  timestamp: new Date(),
-                },
-              ]);
-            } else {
-              // Disconnect/reconnect as needed
-              if (!newStatus) {
-                await mcpManager.disconnectServer(serverName);
-              }
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `MCP server **${serverName}** ${newStatus ? "enabled" : "disabled"}.\n\nUse /mcp reconnect to apply changes.`,
-                  timestamp: new Date(),
-                },
-              ]);
-            }
-            return true;
-          } else if (subCmd === "reconnect") {
+          // Handle specific subcommands
+          if (subCmd === "reconnect") {
             setMessages((prev) => [
               ...prev,
               {
@@ -471,94 +365,17 @@ ${serverList}
               },
             ]);
             return true;
-          } else if (subCmd === "tools") {
-            const tools = mcpManager.getTools();
-            if (tools.length === 0) {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: "No MCP tools available. Use /mcp reconnect to connect servers.",
-                  timestamp: new Date(),
-                },
-              ]);
-            } else {
-              const toolList = tools.map((t) => `• **${t.name}** - ${t.description}`).join("\n");
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `**🛠️ MCP Tools (${tools.length}):**\n\n${toolList}`,
-                  timestamp: new Date(),
-                },
-              ]);
-            }
-            return true;
-          } else if (subCmd === "remove" && args[1]) {
-            const serverName = args[1];
-            const removed = await removeMCPServer(serverName);
-            if (removed) {
-              await mcpManager.disconnectServer(serverName);
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `MCP server **${serverName}** removed.`,
-                  timestamp: new Date(),
-                },
-              ]);
-            } else {
-              setMessages((prev) => [
-                ...prev,
-                {
-                  role: "system",
-                  content: `MCP server not found: ${serverName}`,
-                  timestamp: new Date(),
-                },
-              ]);
-            }
-            return true;
-          } else if (subCmd === "add" && args[1]) {
-            // Interactive add is complex, provide instructions
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "system",
-                content: `**Add MCP Server:**
-
-To add a new MCP server, edit the config file:
-~/.zesbe-modern/mcp.json
-
-Example format:
-\`\`\`json
-{
-  "mcpServers": {
-    "your-server": {
-      "command": "npx",
-      "args": ["-y", "@your/mcp-server"],
-      "env": { "API_KEY": "your-key" },
-      "enabled": true
-    }
-  }
-}
-\`\`\`
-
-Then run /mcp reconnect to apply.`,
-                timestamp: new Date(),
-              },
-            ]);
-            return true;
-          } else {
-            setMessages((prev) => [
-              ...prev,
-              {
-                role: "system",
-                content: `Unknown MCP command: ${subCmd}\n\nUse /mcp to see available commands.`,
-                timestamp: new Date(),
-              },
-            ]);
-            return true;
           }
+
+          // Show interactive menu for other operations
+          setActiveMenu("mcp");
+          return true;
+
+        case "skills":
+        case "tools":
+          // Show interactive skills menu
+          setActiveMenu("skills");
+          return true;
 
         case "plan":
           // Generate a coding plan request
@@ -946,11 +763,213 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
         )}
       </Box>
 
+      {/* Interactive Menus */}
+      {activeMenu === "provider" && config && (
+        <ProviderMenu
+          currentProvider={config.provider}
+          onSelect={async (provider) => {
+            const newConfig = {
+              ...config,
+              provider,
+              model: DEFAULT_PROVIDERS[provider].model,
+              baseUrl: DEFAULT_PROVIDERS[provider].baseUrl,
+            };
+            await saveConfig(newConfig);
+            setConfig(newConfig);
+            setActiveMenu("none");
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: `✅ Switched to **${DEFAULT_PROVIDERS[provider].name}** (${DEFAULT_PROVIDERS[provider].model})`,
+                timestamp: new Date(),
+              },
+            ]);
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "model" && config && (
+        <ModelMenu
+          currentProvider={config.provider}
+          currentModel={config.model}
+          onSelect={async (model) => {
+            const newConfig = { ...config, model };
+            await saveConfig(newConfig);
+            setConfig(newConfig);
+            setActiveMenu("none");
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: `✅ Model changed to: **${model}**`,
+                timestamp: new Date(),
+              },
+            ]);
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "yolo" && config && (
+        <YoloMenu
+          currentYolo={config.yolo}
+          onToggle={async (enabled) => {
+            const newConfig = { ...config, yolo: enabled };
+            await saveConfig(newConfig);
+            setConfig(newConfig);
+            setActiveMenu("none");
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: `✅ YOLO mode: **${enabled ? "ENABLED 🚀" : "DISABLED 🛡️"}**`,
+                timestamp: new Date(),
+              },
+            ]);
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "mcp" && (
+        <MCPMenu
+          onAction={async (action, serverName) => {
+            if (action === "status") {
+              // Show status message
+              const servers = await listMCPServers();
+              const connected = mcpManager.getConnectedServers();
+              const serverList = servers.map((s: { name: string; config: { enabled?: boolean } }) => {
+                const isConnected = connected.includes(s.name);
+                const status = s.config.enabled !== false
+                  ? (isConnected ? "🟢" : "🟡")
+                  : "🔴";
+                return `${status} ${s.name}`;
+              }).join("\n");
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "system",
+                  content: `**🔌 MCP Status:**\n\n${serverList || "No servers configured"}`,
+                  timestamp: new Date(),
+                },
+              ]);
+              setActiveMenu("none");
+            } else if (action === "toggle" && serverName) {
+              const newStatus = await toggleMCPServer(serverName);
+              if (newStatus !== null) {
+                if (!newStatus) {
+                  await mcpManager.disconnectServer(serverName);
+                }
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    role: "system",
+                    content: `✅ MCP server **${serverName}** ${newStatus ? "enabled" : "disabled"}`,
+                    timestamp: new Date(),
+                  },
+                ]);
+              }
+              setActiveMenu("none");
+            } else if (action === "reconnect") {
+              setActiveMenu("none");
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "system",
+                  content: "🔄 Reconnecting MCP servers...",
+                  timestamp: new Date(),
+                },
+              ]);
+              await mcpManager.disconnectAll();
+              await mcpManager.initialize();
+              const tools = mcpManager.getTools();
+              setMcpTools(tools);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: "system",
+                  content: `✅ Reconnected! ${tools.length} tools available`,
+                  timestamp: new Date(),
+                },
+              ]);
+            } else if (action === "tools") {
+              setActiveMenu("none");
+            }
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "thinking" && (
+        <ThinkingMenu
+          currentShow={showThinking}
+          onToggle={(show) => {
+            setShowThinking(show);
+            setActiveMenu("none");
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: `✅ Thinking display: **${show ? "SHOWN 💭" : "HIDDEN 🔇"}**`,
+                timestamp: new Date(),
+              },
+            ]);
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "config" && config && (
+        <ConfigView
+          config={{
+            provider: config.provider,
+            model: config.model,
+            yolo: config.yolo,
+            theme: config.theme,
+            maxTokens: config.maxTokens,
+            temperature: config.temperature,
+          }}
+          mcpServers={mcpManager.getConnectedServers()}
+          onClose={() => setActiveMenu("none")}
+        />
+      )}
+
+      {activeMenu === "skills" && (
+        <SkillsMenu
+          onSelect={(skill) => {
+            setActiveMenu("none");
+            // Generate a prompt for the selected skill
+            const skillPrompts: Record<string, string> = {
+              read_file: "Please read the file and show me its contents. What file would you like me to read?",
+              edit_file: "I'll help you edit a file. What changes would you like to make?",
+              search_code: "I'll search through the codebase. What are you looking for?",
+              list_directory: "I'll list the directory contents. Which directory?",
+              web_search: "I'll search the web for you. What would you like me to find?",
+              analyze_project: "I'll analyze this project and provide an overview of its structure, dependencies, and purpose.",
+              audit_security: "I'll run a security audit on this project to check for vulnerabilities.",
+              run_tests: "I'll run the tests for this project and report the results.",
+            };
+            const prompt = skillPrompts[skill] || `I'll help you with ${skill}.`;
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content: `🛠️ **${skill.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}**\n\n${prompt}`,
+                timestamp: new Date(),
+              },
+            ]);
+          }}
+          onCancel={() => setActiveMenu("none")}
+        />
+      )}
+
       <Box marginTop={1}>
         <Input
           onSubmit={handleSubmit}
-          isLoading={isLoading}
-          placeholder="Ask me anything... (type /help for commands)"
+          isLoading={isLoading || activeMenu !== "none"}
+          placeholder={activeMenu !== "none" ? "Menu active - use arrows/Enter/Esc" : "Ask me anything... (type /help for commands)"}
         />
       </Box>
     </Box>
