@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import {
   Header,
@@ -65,6 +65,7 @@ export function App() {
   const { exit } = useApp();
   const [config, setConfig] = useState<Config | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +83,11 @@ export function App() {
 
   // Interactive menu state
   const [activeMenu, setActiveMenu] = useState<ActiveMenu>("none");
+
+  // Keep messagesRef in sync with messages state
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load config and create session on mount
   useEffect(() => {
@@ -527,10 +533,10 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
       try {
         const provider = await getProvider();
 
-        // Build initial message history with system prompt
+        // Build initial message history with system prompt - use current messages + user message
         let aiMessages: AIMessage[] = [
           { role: "system", content: CODING_SYSTEM_PROMPT },
-          ...messages
+          ...messagesRef.current
             .filter((m) => m.role !== "system") // Skip system messages (like welcome)
             .map((m) => {
               const msg: AIMessage = {
@@ -550,7 +556,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
         ];
         aiMessages.push({ role: "user", content: text });
 
-        // Tool calling loop - continue until we get a text response without tool calls
+            // Tool calling loop - continue until we get a text response without tool calls
         let maxIterations = 10; // Prevent infinite loops
         let iteration = 0;
 
@@ -734,7 +740,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
         setIsThinkingPhase(false);
       }
     },
-    [config, messages, session, handleCommand, addActivity]
+    [config, session, handleCommand, addActivity]
   );
 
   if (!config) {

@@ -24,23 +24,24 @@ async function main() {
     .scriptName("zesbe")
     .usage("$0 [command] [options]")
     .command("$0", "Start interactive chat", {
-      ink: {
+      console: {
         type: "boolean",
-        description: "Force use Ink TUI (may have issues)",
+        description: "Use stable console mode instead of TUI",
         default: false
       }
     }, async (argv) => {
       console.log(banner);
 
-      // Use stable console interface by default, Ink only if explicitly requested
-      if (argv.ink && isRawModeSupported()) {
-        console.log(chalk.yellow('⚠️  Using Ink TUI mode (experimental)\n'));
-        await startTUI();
-      } else {
-        if (argv.ink) {
-          console.log(chalk.red('❌ Ink TUI not supported in this environment, using console mode\n'));
+      // Use Ink TUI by default, console mode as fallback
+      if (argv.console || !isRawModeSupported()) {
+        if (argv.console) {
+          console.log(chalk.cyan('🖥️  Using console mode\n'));
+        } else {
+          console.log(chalk.red('❌ Ink TUI not supported, using console mode\n'));
         }
         await startConsole();
+      } else {
+        await startTUI();
       }
     })
     .command("server", "Start the backend server", {
