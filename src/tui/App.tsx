@@ -143,8 +143,7 @@ Tip: Ask me to search for documentation or help with coding.`,
   // Handle slash commands
   const handleCommand = useCallback(
     async (cmd: string, args: string[]): Promise<boolean> => {
-      if (!config) return false;
-
+      // Exit commands should always work, even without config
       switch (cmd) {
         case "exit":
         case "quit":
@@ -153,7 +152,14 @@ Tip: Ask me to search for documentation or help with coding.`,
             await saveSession(session);
           }
           exit();
+          process.exit(0); // Force exit if Ink doesn't close
           return true;
+      }
+
+      // Other commands need config
+      if (!config) return false;
+
+      switch (cmd) {
 
         case "clear":
           setMessages([]);
