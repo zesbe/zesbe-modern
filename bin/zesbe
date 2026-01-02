@@ -4,10 +4,10 @@ import { fileURLToPath } from "url";
 import { dirname, join } from "path";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const srcPath = join(__dirname, "..", "src", "index.ts");
+const distPath = join(__dirname, "..", "dist", "index.js");
 
-// Run with tsx
-execSync(`npx tsx "${srcPath}" ${process.argv.slice(2).join(" ")}`, {
+// Run compiled JavaScript
+execSync(`node "${distPath}" ${process.argv.slice(2).join(" ")}`, {
   stdio: "inherit",
   cwd: join(__dirname, ".."),
 });

@@ -1,0 +1,52 @@
+{
+  "servers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "transport": "stdio",
+      "env": {
+        "CONTEXT7_API_KEY": "ctx7sk-dfdd3d92-65fd-4e1d-bd1c-1bee51cbacf0"
+      },
+      "name": "context7",
+      "scope": "project"
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ],
+      "transport": "stdio",
+      "env": {},
+      "name": "sequential-thinking",
+      "scope": "project"
+    },
+    "exa": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "exa-mcp-server"
+      ],
+      "transport": "stdio",
+      "env": {
+        "EXA_API_KEY": "8bab0085-90d5-4767-911d-6fd2f5caf6eb"
+      },
+      "name": "exa",
+      "scope": "project"
+    },
+    "memory": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-memory"
+      ],
+      "transport": "stdio",
+      "env": {},
+      "name": "memory",
+      "scope": "project"
+    }
+  }
+}

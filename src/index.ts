@@ -3,19 +3,45 @@ import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import chalk from "chalk";
 import { startTUI } from "./tui/index.js";
+import { startConsole } from "./console/index.js";
 import { startServer } from "./server/index.js";
 import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "./config/index.js";
+import { program as mcpProgram } from "./cli/mcp-cli.js";
 
 // Simple banner like Claude Code
 const banner = "";
+
+function isRawModeSupported(): boolean {
+  try {
+    return process.stdin && typeof process.stdin.setRawMode === 'function' && process.stdin.isTTY === true;
+  } catch {
+    return false;
+  }
+}
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))
     .scriptName("zesbe")
     .usage("$0 [command] [options]")
-    .command("$0", "Start interactive chat", {}, async () => {
+    .command("$0", "Start interactive chat", {
+      ink: {
+        type: "boolean",
+        description: "Force use Ink TUI (may have issues)",
+        default: false
+      }
+    }, async (argv) => {
       console.log(banner);
-      await startTUI();
+
+      // Use stable console interface by default, Ink only if explicitly requested
+      if (argv.ink && isRawModeSupported()) {
+        console.log(chalk.yellow('⚠️  Using Ink TUI mode (experimental)\n'));
+        await startTUI();
+      } else {
+        if (argv.ink) {
+          console.log(chalk.red('❌ Ink TUI not supported in this environment, using console mode\n'));
+        }
+        await startConsole();
+      }
     })
     .command("server", "Start the backend server", {
       port: {
@@ -116,6 +142,21 @@ async function main() {
         console.log(`  ${chalk.yellow(key.padEnd(12))} ${chalk.gray(provider.name)} - ${chalk.white(provider.model)}`);
       }
       console.log();
+    })
+    .command("tui", "Start Ink TUI mode (experimental)", {}, async () => {
+      if (isRawModeSupported()) {
+        console.log(chalk.yellow('⚠️  Starting Ink TUI mode (experimental)\n'));
+        await startTUI();
+      } else {
+        console.error(chalk.red('❌ Ink TUI not supported in this environment'));
+        console.error(chalk.gray('   Use the default console mode instead'));
+        process.exit(1);
+      }
+    })
+    .command("mcp", "Configure and manage MCP servers", {}, () => {
+      // Forward to MCP CLI with remaining args
+      const mcpArgs = process.argv.slice(3); // Remove 'zesbe-modern', 'mcp'
+      mcpProgram.parse(mcpArgs, { from: 'user' });
     })
     .option("provider", {
       alias: "P",
