@@ -6,12 +6,8 @@ import { startTUI } from "./tui/index.js";
 import { startServer } from "./server/index.js";
 import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "./config/index.js";
 
-const banner = `
-${chalk.cyan.bold("╔═══════════════════════════════════════╗")}
-${chalk.cyan.bold("║")}  ${chalk.white.bold("zesbe")} ${chalk.gray("modern")}                         ${chalk.cyan.bold("║")}
-${chalk.cyan.bold("║")}  ${chalk.yellow("AI CLI powered by MiniMax & Bun")}       ${chalk.cyan.bold("║")}
-${chalk.cyan.bold("╚═══════════════════════════════════════╝")}
-`;
+// Simple banner like Claude Code
+const banner = "";
 
 async function main() {
   const argv = await yargs(hideBin(process.argv))

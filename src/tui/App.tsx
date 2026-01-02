@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import {
   Header,
+  StatusLine,
   Message,
   Input,
   Spinner,
@@ -694,7 +695,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
 
   return (
     <Box flexDirection="column" height="100%">
-      <Header provider={config.provider} model={config.model} yolo={config.yolo} mcpServers={mcpManager.getConnectedServers()} />
+      <Header provider={config.provider} model={config.model} />
 
       <Box flexDirection="column" flexGrow={1} paddingX={1} overflowY="hidden">
         {messages.map((msg, i) => (
@@ -978,6 +979,14 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
           placeholder={activeMenu !== "none" ? "Menu active - use arrows/Enter/Esc" : "Ask me anything... (type /help for commands)"}
         />
       </Box>
+
+      {/* Status bar at bottom */}
+      <StatusLine
+        provider={config.provider}
+        model={config.model}
+        yolo={config.yolo}
+        mcpServers={mcpManager.getConnectedServers()}
+      />
     </Box>
   );
 }
