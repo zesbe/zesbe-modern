@@ -9,10 +9,13 @@
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:build": "tsc --watch",
     "start": "tsx src/index.ts",
     "server": "tsx src/server/index.ts",
-    "build": "tsc && chmod +x dist/index.js",
-    "typecheck": "tsc --noEmit"
+    "build": "rm -rf dist && tsc && chmod +x dist/index.js",
+    "build:fast": "tsc --incremental && chmod +x dist/index.js",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist && rm -rf node_modules/.cache"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.7",

@@ -97,59 +97,57 @@ export const App = memo(function App() {
       setConfig(cfg);
       setSession(createSession(cfg.provider, cfg.model));
 
-      // Initialize MCP servers in background
-      try {
-        await mcpManager.initialize();
+      // Show immediate welcome message without waiting for MCP
+      setMessages([{
+        role: "system",
+        content: `**Welcome to zesbe-modern! 🚀**
+
+I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
+
+* Writing and editing code
+* Debugging and troubleshooting
+* Reading and analyzing files
+* Running terminal commands (git, npm, etc)
+* Searching for documentation online
+* Analyzing project structure
+
+**Current Configuration:**
+Provider: **${cfg.provider}** | Model: **${cfg.model}**
+YOLO mode: **${cfg.yolo ? "ON" : "OFF"}**
+MCP Servers: **Loading...** ⏳
+
+Type **/help** for commands or just start chatting! 💻`,
+        timestamp: new Date(),
+      }]);
+
+      // Initialize MCP servers in background WITHOUT blocking UI
+      mcpManager.initialize().then(() => {
         const tools = mcpManager.getTools();
+        const connectedServers = mcpManager.getConnectedServers();
         setMcpTools(tools);
         setMcpInitialized(true);
-        const connectedServers = mcpManager.getConnectedServers();
 
-        // Welcome message with MCP status
-        setMessages([{
-          role: "system",
-          content: `**Welcome to zesbe-modern! 🚀**
-
-I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
-
-* Writing and editing code
-* Debugging and troubleshooting
-* Reading and analyzing files
-* Running terminal commands (git, npm, etc)
-* Searching for documentation online
-* Analyzing project structure
-
-**Current Configuration:**
-Provider: **${cfg.provider}** | Model: **${cfg.model}**
-YOLO mode: **${cfg.yolo ? "ON" : "OFF"}**
-MCP Servers: **${connectedServers.length > 0 ? connectedServers.join(", ") : "None"}**
-
-Type **/help** for commands or just start chatting! 💻`,
-          timestamp: new Date(),
-        }]);
-      } catch (err) {
-        // Even if MCP fails, continue with welcome
-        setMessages([{
-          role: "system",
-          content: `**Welcome to zesbe-modern! 🚀**
-
-I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
-
-* Writing and editing code
-* Debugging and troubleshooting
-* Reading and analyzing files
-* Running terminal commands (git, npm, etc)
-* Searching for documentation online
-* Analyzing project structure
-
-**Current Configuration:**
-Provider: **${cfg.provider}** | Model: **${cfg.model}**
-YOLO mode: **${cfg.yolo ? "ON" : "OFF"}**
-
-Type **/help** for commands or just start chatting! 💻`,
-          timestamp: new Date(),
-        }]);
-      }
+        // Update welcome message with MCP status
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "system",
+            content: `🔌 **MCP Ready!** Connected: ${connectedServers.length > 0 ? connectedServers.join(", ") : "None"} | Tools: ${tools.length}`,
+            timestamp: new Date(),
+          }
+        ]);
+      }).catch((err) => {
+        // MCP failed but don't block the app
+        console.error("MCP initialization failed:", err);
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: "system",
+            content: `⚠️ MCP servers unavailable (continuing with built-in tools)`,
+            timestamp: new Date(),
+          }
+        ]);
+      });
     });
   }, []);
 
