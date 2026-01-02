@@ -6,17 +6,34 @@ export interface HeaderProps {
   model: string;
 }
 
-// Simple header like Claude Code
+// Header with ASCII logo
 export function Header({ provider, model }: HeaderProps) {
   return (
-    <Box marginBottom={1}>
-      <Text color="cyan" bold>zesbe</Text>
-      <Text dimColor> v1.0.0 </Text>
-      <Text dimColor>(</Text>
-      <Text color="yellow">{provider}</Text>
-      <Text dimColor>/</Text>
-      <Text color="green">{model}</Text>
-      <Text dimColor>)</Text>
+    <Box flexDirection="column" marginBottom={1}>
+      {/* ASCII Logo */}
+      <Box justifyContent="center">
+        <Text color="cyan" bold>
+{`
+ ███████╗███████╗███████╗██████╗ ███████╗
+ ╚══███╔╝██╔════╝██╔════╝██╔══██╗██╔════╝
+   ███╔╝ █████╗  ███████╗██████╔╝█████╗
+  ███╔╝  ██╔══╝  ╚════██║██╔══██╗██╔══╝
+ ███████╗███████╗███████║██████╔╝███████╗
+ ╚══════╝╚══════╝╚══════╝╚═════╝ ╚══════╝`}
+        </Text>
+      </Box>
+
+      {/* Subtitle */}
+      <Box justifyContent="center">
+        <Text dimColor>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</Text>
+      </Box>
+      <Box justifyContent="center">
+        <Text color="white" bold>zesbe</Text>
+        <Text dimColor> • Modern AI CLI</Text>
+      </Box>
+      <Box justifyContent="center" marginBottom={1}>
+        <Text dimColor>━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</Text>
+      </Box>
     </Box>
   );
 }
