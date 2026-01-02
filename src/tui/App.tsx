@@ -49,6 +49,9 @@ interface ChatMessage {
   timestamp: Date;
   thinking?: string;
   elapsed?: number; // Response time in ms
+  toolCallId?: string; // For tool result messages - required by API
+  toolCalls?: { id: string; name: string; arguments: Record<string, unknown> }[]; // For assistant messages with tool calls
+  rawContent?: string; // Raw content for API (without formatting)
 }
 
 interface ActivityItem {
@@ -99,12 +102,21 @@ export function App() {
           role: "system",
           content: `**Welcome to zesbe-modern! 🚀**
 
+I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
+
+* Writing and editing code
+* Debugging and troubleshooting
+* Reading and analyzing files
+* Running terminal commands (git, npm, etc)
+* Searching for documentation online
+* Analyzing project structure
+
+**Current Configuration:**
 Provider: **${cfg.provider}** | Model: **${cfg.model}**
 YOLO mode: **${cfg.yolo ? "ON" : "OFF"}**
-MCP Servers: **${connectedServers.length > 0 ? connectedServers.join(", ") : "None connected"}**
+MCP Servers: **${connectedServers.length > 0 ? connectedServers.join(", ") : "None"}**
 
-Type /help for commands, /mcp for MCP management.
-Tip: Ask me to search for documentation or help with coding.`,
+Type **/help** for commands or just start chatting! 💻`,
           timestamp: new Date(),
         }]);
       } catch (err) {
@@ -113,11 +125,20 @@ Tip: Ask me to search for documentation or help with coding.`,
           role: "system",
           content: `**Welcome to zesbe-modern! 🚀**
 
+I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
+
+* Writing and editing code
+* Debugging and troubleshooting
+* Reading and analyzing files
+* Running terminal commands (git, npm, etc)
+* Searching for documentation online
+* Analyzing project structure
+
+**Current Configuration:**
 Provider: **${cfg.provider}** | Model: **${cfg.model}**
 YOLO mode: **${cfg.yolo ? "ON" : "OFF"}**
 
-Type /help for commands, or just start chatting!
-Tip: Ask me to search for documentation or help with coding.`,
+Type **/help** for commands or just start chatting! 💻`,
           timestamp: new Date(),
         }]);
       }
@@ -510,10 +531,23 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
         // Build initial message history with system prompt
         let aiMessages: AIMessage[] = [
           { role: "system", content: CODING_SYSTEM_PROMPT },
-          ...messages.map((m) => ({
-            role: m.role === "tool" ? "assistant" : m.role,
-            content: m.content,
-          } as AIMessage)),
+          ...messages
+            .filter((m) => m.role !== "system") // Skip system messages (like welcome)
+            .map((m) => {
+              const msg: AIMessage = {
+                role: m.role,
+                content: m.rawContent || m.content, // Use raw content for API
+              };
+              // Add toolCallId for tool messages - required by MiniMax API
+              if (m.role === "tool" && m.toolCallId) {
+                msg.toolCallId = m.toolCallId;
+              }
+              // Add toolCalls for assistant messages
+              if (m.role === "assistant" && m.toolCalls) {
+                msg.toolCalls = m.toolCalls;
+              }
+              return msg;
+            }),
         ];
         aiMessages.push({ role: "user", content: text });
 
@@ -527,7 +561,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
           // Stream response
           let fullText = "";
           let hasToolCalls = false;
-          const toolResults: { id: string; name: string; output: string }[] = [];
+          const toolResults: { id: string; name: string; output: string; arguments: Record<string, unknown> }[] = [];
 
           // Combine built-in tools with MCP tools
           const allTools = config.yolo
@@ -599,14 +633,17 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
                 id: chunk.toolCall.id,
                 name: chunk.toolCall.name,
                 output: toolOutput,
+                arguments: chunk.toolCall.arguments, // Store arguments for history
               });
 
-              // Add tool result to UI messages
+              // Add tool result to UI messages with toolCallId for API
               setMessages((prev) => [
                 ...prev,
                 {
                   role: "tool",
                   content: `**[${chunk.toolCall!.name}]**\n\`\`\`\n${toolOutput}\n\`\`\``,
+                  rawContent: toolOutput, // Raw content for API
+                  toolCallId: chunk.toolCall!.id, // Required for MiniMax API
                   timestamp: new Date(),
                 },
               ]);
@@ -619,16 +656,31 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
 
           // If we had tool calls, add the results and continue the loop
           if (hasToolCalls && toolResults.length > 0) {
-            // Add assistant message with tool_calls to history
+            // Build toolCalls array with actual arguments
+            const toolCallsForHistory = toolResults.map((t) => ({
+              id: t.id,
+              name: t.name,
+              arguments: t.arguments, // Use actual arguments, not empty
+            }));
+
+            // Add assistant message with tool_calls to aiMessages for current loop
             aiMessages.push({
               role: "assistant",
               content: fullText || "",
-              toolCalls: toolResults.map((t) => ({
-                id: t.id,
-                name: t.name,
-                arguments: {}, // Arguments were already used
-              })),
+              toolCalls: toolCallsForHistory,
             });
+
+            // Also store in UI messages for subsequent chat sessions
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "assistant",
+                content: fullText || "(calling tools...)",
+                rawContent: fullText || "",
+                toolCalls: toolCallsForHistory,
+                timestamp: new Date(),
+              },
+            ]);
 
             // Add tool results to history with proper tool_call_id
             for (const toolResult of toolResults) {
@@ -658,6 +710,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
                 {
                   role: "assistant",
                   content: filtered,
+                  rawContent: filtered, // Raw content same as filtered (no thinking tags)
                   timestamp: new Date(),
                   thinking: thinking || undefined,
                   elapsed,
