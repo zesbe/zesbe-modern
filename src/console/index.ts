@@ -44,12 +44,17 @@ export async function startConsole() {
       return;
     }
 
+    // Pause readline while AI is responding to prevent input overlap
+    rl.pause();
+
     try {
       await handleInput(session, trimmed);
     } catch (error) {
       console.error(chalk.red(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
     }
 
+    // Resume readline after AI response completes
+    rl.resume();
     rl.prompt();
   });
 
@@ -138,30 +143,34 @@ async function handleChatMessage(session: ConsoleSession, input: string) {
       tools: config.yolo ? TOOL_DEFINITIONS : undefined,
     });
 
-    let fullResponse = "";
-    let inThinkingBlock = false;
+    let rawResponse = "";
+    let displayedLength = 0;
 
     for await (const chunk of generator) {
       if (chunk.type === "text" && chunk.content) {
-        // Filter out <think>...</think> blocks
-        let text = chunk.content;
+        rawResponse += chunk.content;
 
-        // Track thinking blocks
-        if (text.includes('<think>')) {
-          inThinkingBlock = true;
-        }
-        if (text.includes('</think>')) {
-          inThinkingBlock = false;
-          text = text.replace(/<think>[\s\S]*?<\/think>/g, '');
+        // Filter thinking blocks from accumulated response
+        let filtered = rawResponse;
+
+        // Remove complete <think>...</think> blocks
+        filtered = filtered.replace(/<think>[\s\S]*?<\/think>/g, '');
+
+        // If we're in the middle of a thinking block, don't show new content
+        if (filtered.includes('<think>') && !filtered.includes('</think>')) {
+          // Still accumulating thinking content, wait
+          continue;
         }
 
-        // Only show non-thinking content
-        if (!inThinkingBlock && !text.includes('<think>')) {
-          const cleanText = text.replace(/<\/?think>/g, '');
-          if (cleanText) {
-            process.stdout.write(cleanText);
-            fullResponse += cleanText;
-          }
+        // Remove any remaining partial tags
+        filtered = filtered.replace(/<think>[\s\S]*/g, ''); // Remove unclosed <think>
+        filtered = filtered.replace(/<\/?think>/g, ''); // Remove stray tags
+
+        // Only display new content
+        if (filtered.length > displayedLength) {
+          const newContent = filtered.slice(displayedLength);
+          process.stdout.write(newContent);
+          displayedLength = filtered.length;
         }
       } else if (chunk.type === "tool_call" && chunk.toolCall) {
         console.log(chalk.yellow(`\n🔧 Tool: ${chunk.toolCall.name}`));
@@ -173,8 +182,14 @@ async function handleChatMessage(session: ConsoleSession, input: string) {
 
     console.log(); // New line after response
 
-    if (fullResponse) {
-      session.messages.push({ role: 'assistant', content: fullResponse });
+    // Store clean response in history
+    const cleanResponse = rawResponse
+      .replace(/<think>[\s\S]*?<\/think>/g, '')
+      .replace(/<\/?think>/g, '')
+      .trim();
+
+    if (cleanResponse) {
+      session.messages.push({ role: 'assistant', content: cleanResponse });
     }
 
   } catch (error) {
