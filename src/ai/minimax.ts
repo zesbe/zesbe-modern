@@ -96,14 +96,50 @@ export class MiniMaxProvider implements AIProvider {
 
   private convertTools(tools?: ToolDefinition[]): OpenAITool[] | undefined {
     if (!tools || tools.length === 0) return undefined;
-    return tools.map((tool) => ({
-      type: "function" as const,
-      function: {
-        name: tool.name,
-        description: tool.description,
-        parameters: tool.parameters,
-      },
-    }));
+
+    // Sanitize and convert tools - ensure valid schemas
+    return tools
+      .filter(tool => tool.name && tool.description) // Filter out invalid tools
+      .map((tool) => ({
+        type: "function" as const,
+        function: {
+          name: tool.name.replace(/[^a-zA-Z0-9_-]/g, "_"), // Sanitize name
+          description: (tool.description || tool.name).slice(0, 1000), // Limit description length
+          parameters: this.sanitizeParameters(tool.parameters),
+        },
+      }));
+  }
+
+  private sanitizeParameters(params: Record<string, unknown>): Record<string, unknown> {
+    // Ensure parameters has valid JSON Schema structure
+    if (!params || typeof params !== "object") {
+      return { type: "object", properties: {}, required: [] };
+    }
+
+    const sanitized: Record<string, unknown> = {
+      type: params.type || "object",
+    };
+
+    // Copy properties if present
+    if (params.properties && typeof params.properties === "object") {
+      sanitized.properties = params.properties;
+    } else {
+      sanitized.properties = {};
+    }
+
+    // Copy required if present and valid
+    if (Array.isArray(params.required)) {
+      sanitized.required = params.required;
+    } else {
+      sanitized.required = [];
+    }
+
+    // Copy additionalProperties if present
+    if (params.additionalProperties !== undefined) {
+      sanitized.additionalProperties = params.additionalProperties;
+    }
+
+    return sanitized;
   }
 
   private convertMessages(messages: Message[]): OpenAIMessage[] {
