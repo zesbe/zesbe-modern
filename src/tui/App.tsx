@@ -168,7 +168,6 @@ Type **/help** for commands or just start chatting! 💻`,
       // Exit commands should always work, even without config
       switch (cmd) {
         case "exit":
-        case "quit":
         case "q":
           if (session && session.messages.length > 0) {
             await saveSession(session);
@@ -197,7 +196,7 @@ Type **/help** for commands or just start chatting! 💻`,
               content: `**📚 Available Commands:**
 
 **General:**
-• /exit, /quit, /q - Exit the app
+• /exit, /q - Exit the app
 • /clear - Clear chat & start new session
 • /help - Show this help
 

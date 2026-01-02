@@ -21,7 +21,6 @@ export const SLASH_COMMANDS: CommandItem[] = [
   { name: "help", description: "Show all available commands", category: "General" },
   { name: "clear", description: "Clear conversation history", category: "General" },
   { name: "exit", description: "Exit the application", category: "General" },
-  { name: "quit", description: "Exit the application", category: "General" },
 
   // Coding
   { name: "plan", description: "Generate a coding plan for a task", category: "Coding" },
