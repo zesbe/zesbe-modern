@@ -756,22 +756,25 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
       <Header provider={config.provider} model={config.model} />
 
       <Box flexDirection="column" flexGrow={1} paddingX={1} overflowY="hidden">
-        {messages.map((msg, i) => (
-          <Box key={i} flexDirection="column">
-            <Message
-              role={msg.role}
-              content={renderMarkdown(msg.content)}
-              timestamp={msg.timestamp}
-              elapsed={msg.elapsed}
-            />
-            {showThinking && msg.thinking && (
-              <Box marginLeft={4} marginBottom={1}>
-                <Text dimColor italic>
-                  💭 {msg.thinking.slice(0, 200)}
-                  {msg.thinking.length > 200 ? "..." : ""}
-                </Text>
-              </Box>
-            )}
+        {messages.map((msg, i) => {
+          // Create stable unique key for React rendering
+          const uniqueKey = `${msg.timestamp.getTime()}-${msg.role}-${i}`;
+          return (
+            <Box key={uniqueKey} flexDirection="column">
+              <Message
+                role={msg.role}
+                content={renderMarkdown(msg.content)}
+                timestamp={msg.timestamp}
+                elapsed={msg.elapsed}
+              />
+              {showThinking && msg.thinking && (
+                <Box marginLeft={4} marginBottom={1}>
+                  <Text dimColor italic>
+                    💭 {msg.thinking.slice(0, 200)}
+                    {msg.thinking.length > 200 ? "..." : ""}
+                  </Text>
+                </Box>
+              )}
           </Box>
         ))}
 
