@@ -100,7 +100,7 @@ export const App = memo(function App() {
       // Show immediate welcome message without waiting for MCP
       setMessages([{
         role: "system",
-        content: `**Welcome to zesbe-modern! 🚀**
+        content: `**Welcome to zesbe! 🚀**
 
 I'm your AI coding assistant powered by **${cfg.provider}**. I can help you with:
 

@@ -15,7 +15,7 @@ export async function startConsole() {
   const config = await loadConfig();
 
   console.log(chalk.cyan('\n╭─────────────────────────────────────────────╮'));
-  console.log(chalk.cyan('│') + chalk.bold.white('          🤖 zesbe-modern Console           ') + chalk.cyan('│'));
+  console.log(chalk.cyan('│') + chalk.bold.white('             🤖 zesbe Console               ') + chalk.cyan('│'));
   console.log(chalk.cyan('│') + chalk.gray('         Stable Console Interface           ') + chalk.cyan('│'));
   console.log(chalk.cyan('╰─────────────────────────────────────────────╯\n'));
 
@@ -127,20 +127,58 @@ async function handleChatMessage(session: ConsoleSession, input: string) {
   try {
     const provider = await getProvider();
 
-    console.log(chalk.green('🤖 AI: ') + chalk.gray('Thinking...'));
+    process.stdout.write(chalk.green('🤖 AI: '));
 
-    // Use the same way as TUI App does
-    const response = await provider.chat({
+    // Use streaming method (same as TUI)
+    const generator = provider.chatStream({
       messages: session.messages,
+      model: config.model,
       temperature: config.temperature,
       maxTokens: config.maxTokens,
+      tools: config.yolo ? TOOL_DEFINITIONS : undefined,
     });
 
-    console.log(chalk.green('🤖 AI: ') + response.content);
-    session.messages.push({ role: 'assistant', content: response.content });
+    let fullResponse = "";
+    let inThinkingBlock = false;
+
+    for await (const chunk of generator) {
+      if (chunk.type === "text" && chunk.content) {
+        // Filter out <think>...</think> blocks
+        let text = chunk.content;
+
+        // Track thinking blocks
+        if (text.includes('<think>')) {
+          inThinkingBlock = true;
+        }
+        if (text.includes('</think>')) {
+          inThinkingBlock = false;
+          text = text.replace(/<think>[\s\S]*?<\/think>/g, '');
+        }
+
+        // Only show non-thinking content
+        if (!inThinkingBlock && !text.includes('<think>')) {
+          const cleanText = text.replace(/<\/?think>/g, '');
+          if (cleanText) {
+            process.stdout.write(cleanText);
+            fullResponse += cleanText;
+          }
+        }
+      } else if (chunk.type === "tool_call" && chunk.toolCall) {
+        console.log(chalk.yellow(`\n🔧 Tool: ${chunk.toolCall.name}`));
+      } else if (chunk.type === "error") {
+        console.log(chalk.red(`\n❌ ${chunk.error}`));
+        break;
+      }
+    }
+
+    console.log(); // New line after response
+
+    if (fullResponse) {
+      session.messages.push({ role: 'assistant', content: fullResponse });
+    }
 
   } catch (error) {
-    console.error(chalk.red(`❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
+    console.error(chalk.red(`\n❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`));
   }
 
   console.log(chalk.gray('─'.repeat(50)));

@@ -13,7 +13,7 @@ app.use("/*", cors());
 // Health check
 app.get("/", (c) => {
   return c.json({
-    name: "zesbe-modern",
+    name: "zesbe",
     version: "1.0.0",
     status: "running",
   });
@@ -154,7 +154,7 @@ app.post("/tools/batch", async (c) => {
 
 // Start server function
 export function startServer(port: number = 3721): void {
-  console.log(`\n🚀 zesbe-modern server running at http://localhost:${port}\n`);
+  console.log(`\n🚀 zesbe server running at http://localhost:${port}\n`);
 
   // Use @hono/node-server for Node.js compatibility
   import("@hono/node-server").then(({ serve }) => {

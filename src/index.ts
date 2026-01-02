@@ -153,7 +153,7 @@ async function main() {
     })
     .command("mcp", "Configure and manage MCP servers", {}, () => {
       // Forward to MCP CLI with remaining args
-      const mcpArgs = process.argv.slice(3); // Remove 'zesbe-modern', 'mcp'
+      const mcpArgs = process.argv.slice(3); // Remove 'zesbe', 'mcp'
       mcpProgram.parse(mcpArgs, { from: 'user' });
     })
     .option("provider", {

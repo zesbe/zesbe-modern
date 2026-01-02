@@ -116,7 +116,7 @@ async function testConnection(server: MCPServerConfig): Promise<boolean> {
       stderr: 'ignore'
     });
 
-    const client = new Client({ name: 'zesbe-modern-healthcheck', version: '1.0.0' }, {});
+    const client = new Client({ name: 'zesbe-healthcheck', version: '1.0.0' }, {});
 
     // Shorter timeout to reduce UI delay
     const timeoutPromise = new Promise((_, reject) => {
@@ -156,7 +156,7 @@ async function initializeDefaults(scope: 'project' | 'local' = 'project'): Promi
 const program = new Command();
 
 program
-  .name('zesbe-modern mcp')
+  .name('zesbe mcp')
   .description('Configure and manage MCP servers')
   .version('1.0.0');
 
@@ -171,7 +171,7 @@ program
     if (servers.length === 0) {
       console.log('No MCP servers configured.');
       console.log('\nTo add default servers, run:');
-      console.log('  zesbe-modern mcp add-defaults');
+      console.log('  zesbe mcp add-defaults');
       return;
     }
 
@@ -314,7 +314,7 @@ program
       }
     }
 
-    console.log(`\nTo remove this server, run: zesbe-modern mcp remove "${name}" -s ${server.scope}`);
+    console.log(`\nTo remove this server, run: zesbe mcp remove "${name}" -s ${server.scope}`);
   });
 
 // Add defaults command
@@ -334,7 +334,7 @@ program
       console.log(`  - ${name}`);
     }
 
-    console.log('\nRun "zesbe-modern mcp list" to check server status');
+    console.log('\nRun "zesbe mcp list" to check server status');
   });
 
 // Add JSON command
