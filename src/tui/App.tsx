@@ -800,24 +800,22 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
         {isLoading && (
           <Box flexDirection="column" marginY={1}>
             {/* Show recent tool activities */}
-            {useMemo(() =>
-              activities.slice(-3).map((activity, i) => {
-                if (activity.type === "tool" && activity.name) {
-                  return (
-                    <Box key={`${activity.timestamp.getTime()}-${i}`} marginLeft={2}>
-                      <Text color="green">✓ </Text>
-                      <Text dimColor>
-                        {activity.name.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                      </Text>
-                      {activity.args?.path ? (
-                        <Text dimColor> ({String(activity.args.path).split("/").pop()})</Text>
-                      ) : null}
-                    </Box>
-                  );
-                }
-                return null;
-              })
-            , [activities])}
+            {activities.slice(-3).map((activity, i) => {
+              if (activity.type === "tool" && activity.name) {
+                return (
+                  <Box key={`${activity.timestamp.getTime()}-${i}`} marginLeft={2}>
+                    <Text color="green">✓ </Text>
+                    <Text dimColor>
+                      {activity.name.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                    </Text>
+                    {activity.args?.path ? (
+                      <Text dimColor> ({String(activity.args.path).split("/").pop()})</Text>
+                    ) : null}
+                  </Box>
+                );
+              }
+              return null;
+            })}
 
             {/* Current activity */}
             {currentActivity && (
