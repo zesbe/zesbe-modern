@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import {
   Header,
@@ -61,13 +61,15 @@ interface ActivityItem {
   timestamp: Date;
 }
 
-export function App() {
+export const App = memo(function App() {
   const { exit } = useApp();
   const [config, setConfig] = useState<Config | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const messagesRef = useRef<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState("");
+  const streamingTextRef = useRef("");
+  const streamingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [session, setSession] = useState<ChatSession | null>(null);
   const [showThinking, setShowThinking] = useState(false);
@@ -166,6 +168,21 @@ Type **/help** for commands or just start chatting! 💻`,
   const addActivity = useCallback((activity: ActivityItem) => {
     setActivities((prev) => [...prev.slice(-9), activity]); // Keep last 10
     setCurrentActivity(activity);
+  }, []);
+
+  // Debounced streaming text update to reduce re-renders
+  const updateStreamingText = useCallback((text: string) => {
+    streamingTextRef.current = text;
+
+    // Clear existing timeout
+    if (streamingTimeoutRef.current) {
+      clearTimeout(streamingTimeoutRef.current);
+    }
+
+    // Debounce updates to every 50ms for smoother performance
+    streamingTimeoutRef.current = setTimeout(() => {
+      setStreamingText(streamingTextRef.current);
+    }, 50);
   }, []);
 
   // Handle slash commands
@@ -597,8 +614,8 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
                 setCurrentActivity({ type: "streaming", timestamp: new Date() });
               }
 
-              // Show filtered text while streaming
-              setStreamingText(filterThinking(fullText));
+              // Show filtered text while streaming (debounced for performance)
+              updateStreamingText(filterThinking(fullText));
             } else if (chunk.type === "tool_call" && chunk.toolCall && config.yolo) {
               hasToolCalls = true;
 
@@ -756,48 +773,53 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
       <Header provider={config.provider} model={config.model} />
 
       <Box flexDirection="column" flexGrow={1} paddingX={1} overflowY="hidden">
-        {messages.map((msg, i) => {
-          // Create stable unique key for React rendering
-          const uniqueKey = `${msg.timestamp.getTime()}-${msg.role}-${i}`;
-          return (
-            <Box key={uniqueKey} flexDirection="column">
-              <Message
-                role={msg.role}
-                content={renderMarkdown(msg.content)}
-                timestamp={msg.timestamp}
-                elapsed={msg.elapsed}
-              />
-              {showThinking && msg.thinking && (
-                <Box marginLeft={4} marginBottom={1}>
-                  <Text dimColor italic>
-                    💭 {msg.thinking.slice(0, 200)}
-                    {msg.thinking.length > 200 ? "..." : ""}
-                  </Text>
-                </Box>
-              )}
-          </Box>
-        ))}
+        {useMemo(() =>
+          messages.map((msg, i) => {
+            // Create stable unique key for React rendering
+            const uniqueKey = `${msg.timestamp.getTime()}-${msg.role}-${i}`;
+            return (
+              <Box key={uniqueKey} flexDirection="column">
+                <Message
+                  role={msg.role}
+                  content={renderMarkdown(msg.content)}
+                  timestamp={msg.timestamp}
+                  elapsed={msg.elapsed}
+                />
+                {showThinking && msg.thinking && (
+                  <Box marginLeft={4} marginBottom={1}>
+                    <Text dimColor italic>
+                      💭 {msg.thinking.slice(0, 200)}
+                      {msg.thinking.length > 200 ? "..." : ""}
+                    </Text>
+                  </Box>
+                )}
+            </Box>
+            );
+          })
+        , [messages, showThinking])}
 
         {/* Activity indicators during loading */}
         {isLoading && (
           <Box flexDirection="column" marginY={1}>
             {/* Show recent tool activities */}
-            {activities.slice(-3).map((activity, i) => {
-              if (activity.type === "tool" && activity.name) {
-                return (
-                  <Box key={i} marginLeft={2}>
-                    <Text color="green">✓ </Text>
-                    <Text dimColor>
-                      {activity.name.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
-                    </Text>
-                    {activity.args?.path ? (
-                      <Text dimColor> ({String(activity.args.path).split("/").pop()})</Text>
-                    ) : null}
-                  </Box>
-                );
-              }
-              return null;
-            })}
+            {useMemo(() =>
+              activities.slice(-3).map((activity, i) => {
+                if (activity.type === "tool" && activity.name) {
+                  return (
+                    <Box key={`${activity.timestamp.getTime()}-${i}`} marginLeft={2}>
+                      <Text color="green">✓ </Text>
+                      <Text dimColor>
+                        {activity.name.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase())}
+                      </Text>
+                      {activity.args?.path ? (
+                        <Text dimColor> ({String(activity.args.path).split("/").pop()})</Text>
+                      ) : null}
+                    </Box>
+                  );
+                }
+                return null;
+              })
+            , [activities])}
 
             {/* Current activity */}
             {currentActivity && (
@@ -1050,4 +1072,4 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
       />
     </Box>
   );
-}
+});

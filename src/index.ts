@@ -32,15 +32,12 @@ async function main() {
     }, async (argv) => {
       console.log(banner);
 
-      // Use Ink TUI by default, console mode as fallback
-      if (argv.console || !isRawModeSupported()) {
-        if (argv.console) {
-          console.log(chalk.cyan('🖥️  Using console mode\n'));
-        } else {
-          console.log(chalk.red('❌ Ink TUI not supported, using console mode\n'));
-        }
+      // Use Ink TUI by default (with auto-fallback), or force console mode
+      if (argv.console) {
+        console.log(chalk.cyan('🖥️  Using console mode\n'));
         await startConsole();
       } else {
+        // startTUI will auto-fallback to console if TUI is not supported
         await startTUI();
       }
     })
