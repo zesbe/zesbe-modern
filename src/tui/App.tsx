@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo } from "react";
+import React, { useState, useEffect, useCallback, useRef, memo } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import {
   Header,
@@ -771,7 +771,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
       <Header provider={config.provider} model={config.model} />
 
       <Box flexDirection="column" flexGrow={1} paddingX={1} overflowY="hidden">
-        {useMemo(() =>
+        {
           messages.map((msg, i) => {
             // Create stable unique key for React rendering
             const uniqueKey = `${msg.timestamp.getTime()}-${msg.role}-${i}`;
@@ -794,7 +794,7 @@ Use YOLO mode (/yolo) to enable automatic tool execution.`,
             </Box>
             );
           })
-        , [messages, showThinking])}
+        }
 
         {/* Activity indicators during loading */}
         {isLoading && (
