@@ -14,14 +14,14 @@ import {
   ThinkingMenu,
   ConfigView,
   SkillsMenu,
-} from "./components";
-import { getProvider, type Message as AIMessage, type StreamChunk } from "../ai";
-import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS, CODING_SYSTEM_PROMPT, type Config } from "../config";
+} from "./components/index.js";
+import { getProvider, type Message as AIMessage, type StreamChunk } from "../ai/index.js";
+import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS, CODING_SYSTEM_PROMPT, type Config } from "../config/index.js";
 
 // Types for interactive menus
 type ActiveMenu = "none" | "provider" | "model" | "yolo" | "mcp" | "thinking" | "config" | "skills";
-import { TOOL_DEFINITIONS, executeTools } from "../tools";
-import { filterThinking, extractThinking, renderMarkdown } from "../utils";
+import { TOOL_DEFINITIONS, executeTools } from "../tools/index.js";
+import { filterThinking, extractThinking, renderMarkdown } from "../utils/index.js";
 import {
   createSession,
   addMessage,
@@ -31,7 +31,7 @@ import {
   clearAllHistory,
   type ChatSession,
   type ChatMessage as HistoryMessage,
-} from "../utils/history";
+} from "../utils/history.js";
 import {
   mcpManager,
   loadMCPConfig,
@@ -40,7 +40,7 @@ import {
   removeMCPServer,
   addMCPServer,
   type MCPServerConfig,
-} from "../mcp";
+} from "../mcp/index.js";
 
 interface ChatMessage {
   role: "user" | "assistant" | "system" | "tool";

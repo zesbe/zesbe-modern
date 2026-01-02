@@ -2,7 +2,7 @@ import { readFile, writeFile, mkdir, readdir, stat } from "fs/promises";
 import { exec } from "child_process";
 import { promisify } from "util";
 import { dirname, join, resolve } from "path";
-import type { ToolDefinition, ToolResult } from "../ai/types";
+import type { ToolDefinition, ToolResult } from "../ai/types.js";
 
 const execAsync = promisify(exec);
 

@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Box, Text, useStdout, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { SLASH_COMMANDS } from "./CommandMenu";
+import { SLASH_COMMANDS } from "./CommandMenu.js";
 
 export interface InputProps {
   onSubmit: (value: string) => void;

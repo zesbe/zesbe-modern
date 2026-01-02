@@ -1,6 +1,6 @@
 import { readFile, writeFile, mkdir, readdir } from "fs/promises";
 import { join } from "path";
-import { CONFIG_DIR } from "../config";
+import { CONFIG_DIR } from "../config/index.js";
 
 export interface ChatMessage {
   role: "user" | "assistant" | "system" | "tool";

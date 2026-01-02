@@ -1,4 +1,4 @@
-import type { AIProvider, ChatRequest, ChatResponse, StreamChunk, Message, ToolDefinition } from "./types";
+import type { AIProvider, ChatRequest, ChatResponse, StreamChunk, Message, ToolDefinition } from "./types.js";
 
 interface OpenAIMessage {
   role: string;

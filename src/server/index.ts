@@ -1,9 +1,9 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { stream } from "hono/streaming";
-import { getProvider, type Message, type StreamChunk } from "../ai";
-import { TOOL_DEFINITIONS, executeTools } from "../tools";
-import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "../config";
+import { getProvider, type Message, type StreamChunk } from "../ai/index.js";
+import { TOOL_DEFINITIONS, executeTools } from "../tools/index.js";
+import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "../config/index.js";
 
 const app = new Hono();
 

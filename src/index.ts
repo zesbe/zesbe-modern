@@ -2,9 +2,9 @@
 import yargs from "yargs";
 import { hideBin } from "yargs/helpers";
 import chalk from "chalk";
-import { startTUI } from "./tui";
-import { startServer } from "./server";
-import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "./config";
+import { startTUI } from "./tui/index.js";
+import { startServer } from "./server/index.js";
+import { loadConfig, saveConfig, listProviders, DEFAULT_PROVIDERS } from "./config/index.js";
 
 const banner = `
 ${chalk.cyan.bold("╔═══════════════════════════════════════╗")}

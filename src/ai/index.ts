@@ -1,6 +1,6 @@
-import type { AIProvider, ChatRequest, StreamChunk } from "./types";
-import { MiniMaxProvider } from "./minimax";
-import { loadConfig, DEFAULT_PROVIDERS } from "../config";
+import type { AIProvider, ChatRequest, StreamChunk } from "./types.js";
+import { MiniMaxProvider } from "./minimax.js";
+import { loadConfig, DEFAULT_PROVIDERS } from "../config/index.js";
 
 // Provider registry
 const providers: Map<string, AIProvider> = new Map();
@@ -63,5 +63,5 @@ export function clearProviders(): void {
 }
 
 // Re-export types
-export * from "./types";
-export { MiniMaxProvider } from "./minimax";
+export * from "./types.js";
+export { MiniMaxProvider } from "./minimax.js";
